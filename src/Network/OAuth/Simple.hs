@@ -105,14 +105,20 @@ runOAuth = runOAuthT
 -- invalid 'ThreeLegged' requests---use 'runOAuth' to provide 'O.Server' and
 -- 'O.ThreeLegged' configuration information.
 runOAuthSimple :: OAuth ty a -> O.Cred ty -> IO a
-runOAuthSimple oat cr = runOAuth oat cr O.defaultServer tl where
-  Just tl = O.parseThreeLegged "http://example.com"
-                               "http://example.com"
-                               "http://example.com"
-                               O.OutOfBand
+runOAuthSimple oat cr = do
+  Just tl <- pure $
+    O.parseThreeLegged "http://example.com"
+                        "http://example.com"
+                        "http://example.com"
+                        O.OutOfBand
+  runOAuth oat cr O.defaultServer tl
 
 upgradeCred :: (Cred.ResourceToken ty', Monad m) => O.Token ty' -> OAuthT ty m (O.Cred ty')
 upgradeCred tok = liftM (Cred.upgradeCred tok . cred) ask
+
+-- | Promote a function to a monad.
+liftM :: (Monad m) => (a1 -> r) -> m a1 -> m r
+liftM f m1 = do { x1 <- m1; return (f x1) }
 
 -- | Given a 'Cred.ResourceToken' of some kind, run an inner 'OAuthT' session
 -- with the same configuration but new credentials.
